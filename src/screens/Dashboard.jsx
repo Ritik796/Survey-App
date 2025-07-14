@@ -7,8 +7,8 @@ import LoadingScreen from './LoadingScreen';
 
 const Dashboard = () => {
     // const WEB_URL = "https://wevois-qa-bgservices.web.app";
-    // const WEB_URL = "http://192.168.46.232:3000";
-    const WEB_URL = "https://interview-8f792.web.app";
+    const WEB_URL = "http://192.168.29.156:3000";
+    // const WEB_URL = "https://interview-8f792.web.app";
     const appState = useRef(AppState.currentState);
     let locationRef = useRef(null);
     const webViewRef = useRef(null);
