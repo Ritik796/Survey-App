@@ -1,12 +1,8 @@
 import Geolocation from "@react-native-community/geolocation";
 import DeviceInfo from "react-native-device-info";
-import { getCurrentDatabase } from "../Firebase";
-import { ref, set } from "firebase/database";
-export const startLocationTracking = async (userId, databaseURL, locationRef) => {
-    if (!userId || !databaseURL) {
-        console.warn("Invalid userId or databaseURL");
-        return () => { };
-    }
+
+export const startLocationTracking = async (webViewRef, locationRef, desiredAccuracy) => {
+
 
     const isLocationOn = await DeviceInfo.isLocationEnabled().catch((err) => {
         console.error("Error checking GPS status:", err);
@@ -15,7 +11,6 @@ export const startLocationTracking = async (userId, databaseURL, locationRef) =>
 
     if (!isLocationOn) {
         console.warn("Device location (GPS) is OFF. Recording blank location.");
-        updateLocationByUserId(userId, databaseURL, "", "");
         return () => { };
     }
     console.log("Starting watchPosition…");
@@ -24,14 +19,14 @@ export const startLocationTracking = async (userId, databaseURL, locationRef) =>
             const { latitude, longitude, accuracy } = position.coords;
             console.log("watchPosition callback:", latitude, longitude, accuracy);
 
-            if (accuracy != null && accuracy <= 15) {
-                updateLocationByUserId(userId, databaseURL, latitude, longitude);
+            if (accuracy != null && accuracy <= Number(desiredAccuracy)) {
+                webViewRef?.current?.postMessage(JSON.stringify({ type: "location_update", data: { lat: latitude, lng: longitude } }));
             } else {
                 console.log("Skipped low-accuracy position:", accuracy);
             }
         },
         (error) => {
-            updateLocationByUserId(userId, databaseURL, "", "");
+            console.log('Error in Location Tracking ', error);
         },
         {
             enableHighAccuracy: true,
@@ -56,35 +51,12 @@ export const startLocationTracking = async (userId, databaseURL, locationRef) =>
     };
 };
 
-export const stopLocationTracking = (locationRef, setWebData) => {
+
+export const stopTracking = async (locationRef) => {
     if (locationRef?.current) {
         console.log("Location tracking stopped.", locationRef.current);
-        Geolocation.clearWatch(locationRef.current);
+        await Geolocation.clearWatch(locationRef.current);
         locationRef.current = null;
-
-        if (setWebData) {
-            setWebData((prev) => ({ ...prev, userId: "", databaseUrl: "" }));
-        }
     }
 };
-export const stopTracking = async (locationRef) => {
-  if (locationRef?.current) {
-    console.log("Location tracking stopped.", locationRef.current);
-    await Geolocation.clearWatch(locationRef.current);
-    locationRef.current = null;
-  }
-};
 
-export const updateLocationByUserId = async (userId, databaseurl, lat, lng) => {
-    return new Promise(async (resolve) => {
-        if (userId && databaseurl) {
-            let database = await getCurrentDatabase(databaseurl);
-            console.log(databaseurl, lat, lng, userId, `/Surveyors/${userId}/latLng`);
-            set(ref(database, `/Surveyors/${userId}/latLng`), { lat, lng });
-            resolve('success');
-        }
-        else {
-            console.log(`Error saving location : userId : ${userId},city : ${city},lat : ${lat},lng : ${lng}`);
-        }
-    });
-};
