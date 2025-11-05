@@ -7,8 +7,11 @@ import * as action from '../Action/Dashboard/DashboardAction';
 
 const Dashboard = () => {
     // const WEB_URL = "https://wevois-qa-bgservices.web.app";
-    // const WEB_URL = "http://192.168.31.190:3000";
-    const WEB_URL = "https://surveyapp-29597.web.app";
+    const WEB_URL = "http://192.168.31.135:3000";
+    // For harendra sir
+    // const WEB_URL = "https://surveyapp-29597.web.app";
+    // Ritik
+    // const WEB_URL = `https://learnreactapp-d8e38.web.app`;
     const appState = useRef(AppState.currentState);
     let locationRef = useRef(null);
     const webViewRef = useRef(null);
@@ -30,7 +33,7 @@ const Dashboard = () => {
         action.readWebViewMessage(event, locationRef, webViewRef);
     };
     const handleAppStateChange = async (nextAppState) => {
-        action.appStateChange(nextAppState, appState, setLoading, setWebKey,locationRef);
+        action.appStateChange(nextAppState, appState, setLoading, setWebKey, locationRef);
     };
 
     const handleStopLoading = () => {
@@ -61,6 +64,7 @@ const Dashboard = () => {
                         mediaPlaybackRequiresUserAction={false}
                         allowsInlineMediaPlayback={true}
                         onLoadEnd={handleStopLoading}
+                        setSupportMultipleWindows={true}
                         style={{ flex: 1 }}
                     />
                 </KeyboardAvoidingView>
