@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import WebView from 'react-native-webview';
-import { AppState, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { AppState, DeviceEventEmitter, KeyboardAvoidingView, NativeModules, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import LoadingScreen from './LoadingScreen';
 import * as action from '../Action/Dashboard/DashboardAction';
 
 const Dashboard = () => {
     // const WEB_URL = "https://wevois-qa-bgservices.web.app";
-    const WEB_URL = "http://192.168.31.135:3000";
+    const WEB_URL = "http://192.168.20.144:3000";
     // For harendra sir
     // const WEB_URL = "https://surveyapp-29597.web.app";
     // Ritik
@@ -17,14 +17,27 @@ const Dashboard = () => {
     const webViewRef = useRef(null);
     const [webKey, setWebKey] = useState(0);
     const [loading, setLoading] = useState(true);
+    const { ConnectivityModule } = NativeModules;
 
     useEffect(() => {
         requestAllPermissions();
+        ConnectivityModule.startMonitoring();
         const subscription = AppState.addEventListener("change", handleAppStateChange);
         return () => subscription.remove();
         // eslint-disable-next-line
     }, []);
-
+    useEffect(() => {
+        let mobileNetWorkStatus = DeviceEventEmitter.addListener('onConnectivityStatus', mobile => {
+            webViewRef?.current?.postMessage(JSON.stringify({ type: "onConnectivityStatus", status: mobile.isMobileDataOn }));
+        });
+        let locationOnStatus = DeviceEventEmitter.addListener('onLocationStatus', location => {
+            webViewRef?.current?.postMessage(JSON.stringify({ type: "onLocationStatus", status: location.isLocationOn }));
+        });
+        return () => {
+            mobileNetWorkStatus?.remove();
+            locationOnStatus?.remove();
+        };
+    }, []);
     const requestAllPermissions = async () => {
         action.requestAllPermission();
     };
@@ -33,7 +46,7 @@ const Dashboard = () => {
         action.readWebViewMessage(event, locationRef, webViewRef);
     };
     const handleAppStateChange = async (nextAppState) => {
-        action.appStateChange(nextAppState, appState, setLoading, setWebKey, locationRef);
+        action.appStateChange(nextAppState, appState, setLoading, setWebKey, locationRef, ConnectivityModule);
     };
 
     const handleStopLoading = () => {

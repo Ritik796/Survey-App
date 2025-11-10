@@ -13,6 +13,8 @@ import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 import com.heanoria.library.reactnative.locationenabler.AndroidLocationEnablerPackage
 import com.showlocationservicesdialogbox.LocationServicesDialogBoxPackage;
+import com.surveyapp.ConnectivityPackage.ConnectivityPackage
+
 
 class MainApplication : Application(), ReactApplication {
 
@@ -24,6 +26,8 @@ class MainApplication : Application(), ReactApplication {
                     // add(MyReactNativePackage())
                     add(AndroidLocationEnablerPackage())
                     add(LocationServicesDialogBoxPackage())
+                    add(ConnectivityPackage())
+
                 }
 
             override fun getJSMainModuleName(): String = "index"
