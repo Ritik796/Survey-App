@@ -9,7 +9,8 @@ export const appStateChange = (
   setLoading,
   setWebKey,
   locationRef,
-  ConnectivityModule
+  ConnectivityModule,
+  appLoadingRef
 ) => {
   try {
     const state =
@@ -19,20 +20,23 @@ export const appStateChange = (
 
     const prev = appStateRef?.current;
 
-    // 🎯 App first launch (no previous state)
     if (state === 'active') {
       startConnectivityListener(ConnectivityModule);
     }
 
-    // 🎯 App comes to foreground
     if ((prev === 'inactive' || prev === 'background') && state === 'active') {
-      if (typeof setLoading === 'function') setLoading(true);
-      if (typeof setWebKey === 'function') {
+
+      // ✅ Loading only if appLoadingRef.current === true
+      if (appLoadingRef?.current === true && typeof setLoading === 'function') {
+        setLoading(true);
+      }
+
+      // ✅ WebView reload only if allowed
+      if (appLoadingRef?.current === true && typeof setWebKey === 'function') {
         setWebKey(prevKey => (typeof prevKey === 'number' ? prevKey + 1 : 1));
       }
     }
 
-    // 🎯 App moves to background
     if (state === 'inactive' || state === 'background') {
       stopConnectivityListener(ConnectivityModule);
 
@@ -41,7 +45,6 @@ export const appStateChange = (
       }
     }
 
-    // Store state
     if (appStateRef && typeof appStateRef === 'object') {
       appStateRef.current = state;
     }
@@ -49,10 +52,15 @@ export const appStateChange = (
     return true;
   } catch (err) {
     console.warn('appStateChange: unexpected error', err);
-    if (typeof setLoading === 'function') setLoading(false);
+
+    // ✅ Only stop loading if allowed
+    if (appLoadingRef?.current === true && typeof setLoading === 'function') {
+      setLoading(false);
+    }
     return false;
   }
 };
+
 
 
 const startConnectivityListener = (ConnectivityModule) => {
@@ -64,63 +72,97 @@ const stopConnectivityListener = (ConnectivityModule) => {
   ConnectivityModule.stopMonitoring();
 
 };
-export const readWebViewMessage = async (event, locationRef, webViewRef, logger = console) => {
+export const readWebViewMessage = async (event, locationRef, webViewRef, appLoadingRef, geoConfigRef, logger = console) => {
   const message = event?.nativeEvent?.data;
 
-  if (!message) {
-    logger.warn("readWebViewMessage: empty message received");
-    return false;
-  }
+  if (!message) return false;
 
-  // Handle plain string commands first
+  // 1) If string commands:
   if (message === "Stop_location") {
-    try {
-      locationService.stopTracking(locationRef);
-
-    } catch (err) {
-      logger.error("Error stopping location tracking:", err);
-    }
+    try { locationService.stopTracking(locationRef); geoConfigRef.current = null; } catch { }
     return true;
   }
 
-  // Try to parse JSON
-  let data;
-  try {
-    data = JSON.parse(message);
-  } catch (err) {
-    logger.warn("readWebViewMessage: non-JSON or malformed message:", message);
-    return false;
+  // 2) Convert only if needed
+  let data = message;
+  if (typeof message === "string") {
+    try { data = JSON.parse(message); } catch { return false; }
   }
 
-  if (!data || typeof data !== "object" || !data.type) {
-    logger.warn("readWebViewMessage: invalid message format", data);
-    return false;
-  }
+  if (!data?.type) return false;
+
   switch (data.type) {
     case "track_location":
-      try {
-        logger.log("Starting location tracking with data:", data);
-        locationService.startLocationTracking(webViewRef, locationRef, data.msg.accruracy);
-      } catch (err) {
-        logger.error("Error starting location tracking:", err);
-      }
+      geoConfigRef.current = data.msg || {
+        enableHighAccuracy: true,
+        distanceFilter: 10,
+        interval: 10000,
+        fastestInterval: 6000,
+        useSignificantChanges: false,
+        maximumAge: 0,
+        accuracy: 15
+      };
+
+      await locationService.stopTracking(locationRef);
+
+      locationService.startLocationTracking(webViewRef, locationRef, geoConfigRef);
       return true;
 
     case "OPEN_GOOGLE_MAP":
-      if (data.url) {
-        Linking.openURL(data.url);
-      }
-      return true; // ✅ Stop here
+      data.url && Linking.openURL(data.url);
+      return true;
 
     case "checkVersion":
       await checkAppVersion(data.version, webViewRef);
-      return true; // ✅ Stop here
+      return true;
+
+    case "StartAppLoading":
+      appLoadingRef.current = true;
+      return true;
+
+    case "StopAppLoading":
+      appLoadingRef.current = false;
+      return true;
+    case "resetWebData":
+      webAccRef.current = 0;
+      return true;
+    case "onConnectivityStatus":
+      console.log("Connectivity from Web:", data.status);
+
+      // You may want to update native logic:
+      // Example: if offline, show native toast / alert
+      // For now just return true
+      return true;
+
+    case "onLocationStatus":
+      console.log("Location status from Web:", data.status);
+
+      // Again, handle accordingly if needed
+      return true;
+    case "location_update":
+    case "redirectGoogleMaps":
+    case "currentLocation":
+      logger.log("JS requested current location...");
+
+      const result = await locationService.getCurrentPositionOnce(geoConfigRef);
+
+      logger.log("Sending current location to web:", result);
+
+      webViewRef?.current?.postMessage(
+        JSON.stringify({
+          type: data.type,        // returns same type back ("request_current_location" or "currentLocation")
+          success: result.success,
+          error: result.error,
+          data: result.data
+        })
+      );
+
+      return true;
 
     default:
-      logger.warn("Unhandled WebView message type:", data.type);
+      console.warn("Unhandled WebView message type:", data.type);
       return false;
   }
-
 };
 
 export const checkAppVersion = async (version, webViewRef) => {

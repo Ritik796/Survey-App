@@ -4,12 +4,13 @@ import { AppState, DeviceEventEmitter, KeyboardAvoidingView, NativeModules, Plat
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import LoadingScreen from './LoadingScreen';
 import * as action from '../Action/Dashboard/DashboardAction';
+import { startLocationTracking, stopTracking } from '../services/LocationService';
 
 const Dashboard = () => {
     // const WEB_URL = "https://wevois-qa-bgservices.web.app";
-    const WEB_URL = "http://192.168.20.144:3000";
+    // const WEB_URL = "http://192.168.20.144:3000";
     // For harendra sir
-    // const WEB_URL = "https://surveyapp-29597.web.app";
+    const WEB_URL = "https://surveyapp-29597.web.app";
     // Ritik
     // const WEB_URL = `https://learnreactapp-d8e38.web.app`;
     const appState = useRef(AppState.currentState);
@@ -17,7 +18,11 @@ const Dashboard = () => {
     const webViewRef = useRef(null);
     const [webKey, setWebKey] = useState(0);
     const [loading, setLoading] = useState(true);
+    const geoConfigRef = useRef(null);
+    const appLoadingRef = useRef(true);
     const { ConnectivityModule } = NativeModules;
+    const isTrackingRef = useRef(false); // false = not tracking yet
+
 
     useEffect(() => {
         requestAllPermissions();
@@ -31,8 +36,34 @@ const Dashboard = () => {
             webViewRef?.current?.postMessage(JSON.stringify({ type: "onConnectivityStatus", status: mobile.isMobileDataOn }));
         });
         let locationOnStatus = DeviceEventEmitter.addListener('onLocationStatus', location => {
-            webViewRef?.current?.postMessage(JSON.stringify({ type: "onLocationStatus", status: location.isLocationOn }));
+            webViewRef?.current?.postMessage(JSON.stringify({
+                type: "onLocationStatus",
+                status: location.isLocationOn
+            }));
+
+            if (location.isLocationOn) {
+                console.log('geoConfigRef', geoConfigRef.current);
+                // ✅ Prevent multiple start calls
+                if (!isTrackingRef.current) {
+                    isTrackingRef.current = true;
+                    if (geoConfigRef.current) {
+                        startLocationTracking(webViewRef, locationRef, geoConfigRef);
+
+                        console.log("🔥 Location Tracking Started");
+                    }
+                }
+
+            } else {
+
+                // ✅ Prevent multiple stop calls
+                if (isTrackingRef.current) {
+                    isTrackingRef.current = false;
+                    stopTracking(locationRef);
+                    console.log("🛑 Location Tracking Stopped");
+                }
+            }
         });
+
         return () => {
             mobileNetWorkStatus?.remove();
             locationOnStatus?.remove();
@@ -43,16 +74,15 @@ const Dashboard = () => {
     };
 
     const handleWebViewMessage = (event) => {
-        action.readWebViewMessage(event, locationRef, webViewRef);
+        action.readWebViewMessage(event, locationRef, webViewRef, appLoadingRef, geoConfigRef);
     };
     const handleAppStateChange = async (nextAppState) => {
-        action.appStateChange(nextAppState, appState, setLoading, setWebKey, locationRef, ConnectivityModule);
+        action.appStateChange(nextAppState, appState, setLoading, setWebKey, locationRef, ConnectivityModule, appLoadingRef);
     };
 
     const handleStopLoading = () => {
         setTimeout(() => setLoading(false), 1000);
     };
-
     return (
         <SafeAreaProvider>
             <SafeAreaView style={styles.safeContainer}>
