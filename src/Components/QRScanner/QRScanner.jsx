@@ -197,20 +197,20 @@ const styles = StyleSheet.create({
     corner: {
         width: 35,
         height: 35,
-        borderColor: "#00b049",
+        borderColor: "#24ae5eff",
         borderWidth: 4,
         position: "absolute"
     },
-    topLeft: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
-    topRight: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
-    bottomLeft: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
-    bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
+    topLeft: { top: 4, left: 4, borderRightWidth: 0, borderBottomWidth: 0 },
+    topRight: { top: 4, right: 4, borderLeftWidth: 0, borderBottomWidth: 0 },
+    bottomLeft: { bottom: 4, left: 4, borderRightWidth: 0, borderTopWidth: 0 },
+    bottomRight: { bottom: 4, right: 4, borderLeftWidth: 0, borderTopWidth: 0 },
 
     scanLine: {
         position: "absolute",
         width: "80%",
         height: 3,
-        backgroundColor: "#00C853",
+        backgroundColor: "#1bb45bff",
         left: "10%"
     },
 

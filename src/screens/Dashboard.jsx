@@ -155,7 +155,7 @@ const Dashboard = () => {
         if (value === "qr" || value === "card" || value === "image" || value === null) {
             setActiveCamera(value);
         } else {
-           setActiveCamera(null)
+            setActiveCamera(null);
         }
     };
 
@@ -167,7 +167,7 @@ const Dashboard = () => {
         );
     };
 
-    const handleStopLoading = () => setTimeout(() => setLoading(false), 700);
+    const handleStopLoading = () => { setTimeout(() => setLoading(false), 700); appLoadingRef.current = false; };
 
     /* ------------------ UI ------------------ */
     return (

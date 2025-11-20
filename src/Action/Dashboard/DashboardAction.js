@@ -21,43 +21,68 @@ export const appStateChange = (
   appLoadingRef
 ) => {
   try {
-    const state = typeof nextAppState === "string"
-      ? nextAppState
-      : nextAppState?.type ?? String(nextAppState);
+    const state =
+      typeof nextAppState === "string"
+        ? nextAppState
+        : nextAppState?.type ?? String(nextAppState);
 
-    const prev = appStateRef.current;
+    const prev = appStateRef?.current;
 
+    // 🎯 App first launch (no previous state)
     if (state === "active") {
       startConnectivityListener(ConnectivityModule);
     }
 
-    /* Reload webview when returning to active from background/inactive.
-       (You can adjust logic to avoid reload if camera UI is open elsewhere.)
-    */
+    // 🎯 App comes to foreground
     if ((prev === "inactive" || prev === "background") && state === "active") {
-      // Only reload if allowed by appLoadingRef; it's fine to always reload as required
-      if (typeof setLoading === 'function') setLoading(true);
-      if (typeof setWebKey === 'function') {
-        setWebKey(prevKey => (typeof prevKey === 'number' ? prevKey + 1 : 1));
+      
+      // ==========================
+      // ✅ Only run this IF appLoadingRef.current === true
+      // ==========================
+      if (appLoadingRef?.current === true) {
+        if (typeof setLoading === "function") setLoading(true);
+
+        if (typeof setWebKey === "function") {
+          setWebKey(prevKey =>
+            typeof prevKey === "number" ? prevKey + 1 : 1
+          );
+        }
+      } else {
+        console.log("⏩ Reload skipped: appLoadingRef is FALSE");
       }
     }
 
+    // 🎯 App moves to background
     if (state === "inactive" || state === "background") {
       stopConnectivityListener(ConnectivityModule);
 
-      if (locationRef?.current) {
+      if (
+        locationRef?.current &&
+        typeof locationService?.stopTracking === "function"
+      ) {
         locationService.stopTracking(locationRef);
       }
     }
 
-    appStateRef.current = state;
+    // Store state
+    if (appStateRef && typeof appStateRef === "object") {
+      appStateRef.current = state;
+    }
+
     return true;
   } catch (err) {
     console.warn("appStateChange: unexpected error", err);
-    if (typeof setLoading === 'function') setLoading(false);
+
+    // 🔥 Only stop loading if allowed
+    if (appLoadingRef?.current === true && typeof setLoading === "function") {
+      setLoading(false);
+    }
+
     return false;
   }
 };
+
+
 
 const startConnectivityListener = (ConnectivityModule) => {
   ConnectivityModule?.startMonitoring?.();
@@ -222,18 +247,6 @@ export const readWebViewMessage = async (
       -------------------------------------------------- */
       case "captureImageReceived":
         // logger.log("captureImageReceived:", data);
-        return true;
-
-      case "onConnectivityStatus":
-        // logger.log("onConnectivityStatus:", data.status);
-        return true;
-
-      case "onLocationStatus":
-        // logger.log("onLocationStatus:", data.status);
-        return true;
-
-      case "Native_Settings":
-        // logger.log("Native_Settings:", data);
         return true;
 
       case "resetWebData":
