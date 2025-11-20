@@ -1,152 +1,233 @@
-import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
-import LocationServicesDialogBox from 'react-native-android-location-services-dialog-box';
-import { PermissionsAndroid, Platform } from 'react-native';
-import DeviceInfo from 'react-native-device-info';
+import { PermissionsAndroid, Platform, Linking, Alert } from "react-native";
+import { promptForEnableLocationIfNeeded } from "react-native-android-location-enabler";
+import LocationServicesDialogBox from "react-native-android-location-services-dialog-box";
+import DeviceInfo from "react-native-device-info";
+
+// 🔥 Shortcut logging
+const log = (...a) => console.log("PermissionServices:", ...a);
+
+/* ------------------------------------------------------------------
+   🔵 COMMON ALERT
+-------------------------------------------------------------------*/
+const showAlert = (title, msg) => {
+  Alert.alert(title, msg, [
+    { text: "Open Settings", onPress: () => Linking.openSettings() },
+  ]);
+};
+
+/* ------------------------------------------------------------------
+   🔵 GPS ENABLE CHECK (ALWAYS RESOLVE)
+-------------------------------------------------------------------*/
+const getGPSStatus = async () => {
+  log("getGPSStatus → prompting...");
+  try {
+    await promptForEnableLocationIfNeeded();
+    log("getGPSStatus: enabled");
+    return "enabled";
+  } catch (e) {
+    log("GPS enable error → showing fallback dialog");
+    return await getGPSStatusDialog();
+  }
+};
 
 const getGPSStatusDialog = () => {
-    return new Promise(resolve => {
-        LocationServicesDialogBox.checkLocationServicesIsEnabled({
-            message:
-                "To continue, let your device turn on location, which uses Google's location",
-            ok: 'OK',
-            enableHighAccuracy: true,
-            showDialog: true,
-            openLocationServices: true,
-            preventOutSideTouch: false,
-            preventBackClick: false,
-            providerListener: false,
-        })
-            .then(success => {
-                resolve(success.status);
-            })
-            .catch(error => {
-                resolve(error.message);
-            });
-    });
-}
-
-const getGPSStatus = () => {
-    return new Promise(resolve => {
-        if (Platform.OS === 'android') {
-            const executeWithDebounce = debounce(async () => {
-                try {
-                    const enableResult = await promptForEnableLocationIfNeeded();
-                    resolve('enabled');
-                } catch (error) {
-                    console.error('Error while enabling GPS:', error);
-                    getGPSStatusDialog();
-                }
-            }, 500);
-            executeWithDebounce();
-        }
-    });
+  return new Promise((resolve) => {
+    LocationServicesDialogBox.checkLocationServicesIsEnabled({
+      message: "Please enable location services.",
+      ok: "OK",
+      showDialog: true,
+      openLocationServices: true,
+    })
+      .then(() => {
+        log("GPS enabled via dialog");
+        resolve("enabled");
+      })
+      .catch(() => {
+        log("GPS still disabled");
+        resolve("disabled"); // ⭐ Always resolve
+      });
+  });
 };
 
-const debounce = (func, delay) => {
-    let timeoutId;
-    return (...args) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-            func(...args);
-        }, delay);
-    };
-};
-
-export const CustomAlertBox = (title, message) => {
-    Alert.alert(title, message, [
-        {
-            text: 'Open Setting',
-            onPress: () => {
-                Linking.openSettings();
-            },
-        },
-    ]);
-};
-
+/* ------------------------------------------------------------------
+   🔵 CAMERA PERMISSION
+-------------------------------------------------------------------*/
 export const cameraPermission = async () => {
-    return new Promise(async resolve => {
-        let title = 'Camera Permission';
-        let message =
-            'Click Open Settings button then click on Permissions then click on Camera and grant permission.';
-        let permissionStatus = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.CAMERA,
-        );
-        if (permissionStatus === 'granted') {
-            resolve(permissionStatus);
-        } else if (permissionStatus === 'denied') {
-            CustomAlertBox(title, message);
-        } else if (permissionStatus === 'never_ask_again') {
-            CustomAlertBox(title, message);
-        }
-    });
+  log("🎥 cameraPermission → requesting CAMERA");
+  try {
+    const res = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.CAMERA
+    );
+
+    log("🎥 cameraPermission → result:", res);
+
+    if (res === "granted") return "granted";
+
+    showAlert("Camera Permission", "Please enable Camera permission.");
+    return "denied";
+  } catch {
+    return "denied";
+  }
 };
 
+/* ------------------------------------------------------------------
+   🔵 NOTIFICATION PERMISSION
+-------------------------------------------------------------------*/
 export const notificationPermission = async () => {
-    return new Promise(async resolve => {
-        let title = 'Notification Permission';
-        let message =
-            'Click Open Settings button then click on Permissions then click on Notification and grant permission.';
+  log("🔔 notificationPermission → requesting");
 
-        let version = parseFloat(DeviceInfo.getSystemVersion());
+  try {
+    const version = parseFloat(DeviceInfo.getSystemVersion());
 
-        if (version <= 12) {
-            resolve('granted');
-        } else {
-            let notificationStatus = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-            );
-            if (notificationStatus === 'granted') {
-                resolve('granted');
-            } else if (notificationStatus === 'denied') {
-                CustomAlertBox(title, message);
-            } else if (notificationStatus === 'never_ask_again') {
-                CustomAlertBox(title, message);
-            }
-        }
-    });
+    if (version <= 12) return "granted";
+
+    const res = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+    );
+
+    log("🔔 Notification result:", res);
+
+    if (res === "granted") return "granted";
+
+    showAlert("Notification Permission", "Please enable notifications.");
+    return "denied";
+  } catch {
+    return "denied";
+  }
 };
 
+/* ------------------------------------------------------------------
+   🔵 LOCATION PERMISSION (NO FREEZE EVER)
+-------------------------------------------------------------------*/
 export const requestPermissionForForground = () => {
-    return new Promise(async resolve => {
-        let title = 'Location Permission';
-        let message =
-            'Click Open Settings Button then click on Permissions then click on Location and grant permission Allow only while using app.';
-        if (Platform.OS === 'android') {
-            let gpsStatus = await getGPSStatus();
-            if (gpsStatus === 'enabled') {
-                try {
-                    await PermissionsAndroid.requestMultiple([
-                        PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
-                        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-                    ])
-                        .then(async result => {
-                            if (
-                                result['android.permission.ACCESS_COARSE_LOCATION'] &&
-                                result['android.permission.ACCESS_FINE_LOCATION'] === 'granted'
-                            ) {
-                                resolve('granted');
-                            } else if (
-                                result['android.permission.ACCESS_COARSE_LOCATION'] &&
-                                result['android.permission.ACCESS_FINE_LOCATION'] ===
-                                'never_ask_again'
-                            ) {
-                                CustomAlertBox(title, message);
-                            } else if (
-                                result['android.permission.ACCESS_COARSE_LOCATION'] &&
-                                result['android.permission.ACCESS_FINE_LOCATION'] === 'denied'
-                            ) {
-                                CustomAlertBox(title, message);
-                            }
-                        })
-                        .catch(error => {
-                            console.log('ERROR PERMISSION LOCATION: ', error);
-                        });
-                } catch (error) {
-                    console.error('Error requesting location permissions:', error);
-                }
-            } else {
-                getGPSStatusDialog();
-            }
-        }
-    });
+  return new Promise(async (resolve) => {
+    log("📍 requestPermissionForForground → start");
+
+    const gps = await getGPSStatus();
+    log("📍 GPS status:", gps);
+
+    try {
+      const res = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      ]);
+
+      log("📍 Location results:", res);
+
+      if (
+        res["android.permission.ACCESS_COARSE_LOCATION"] === "granted" &&
+        res["android.permission.ACCESS_FINE_LOCATION"] === "granted"
+      ) {
+        resolve("granted");
+      } else {
+        showAlert("Location Permission", "Please enable location permission.");
+        resolve("denied");
+      }
+    } catch (e) {
+      log("📍 Location error:", e);
+      resolve("denied");
+    }
+  });
+};
+
+/* ------------------------------------------------------------------
+   🔵 MICROPHONE PERMISSION
+-------------------------------------------------------------------*/
+export const microphonePermission = async () => {
+  log("🎤 Requesting Microphone Permission");
+
+  try {
+    const res = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+    );
+
+    if (res === "granted") return "granted";
+
+    showAlert("Microphone", "Enable Microphone permission.");
+    return "denied";
+  } catch {
+    return "denied";
+  }
+};
+
+/* ------------------------------------------------------------------
+   🔵 GALLERY PERMISSION
+-------------------------------------------------------------------*/
+export const photosVideosPermission = async () => {
+  log("🖼 PhotosVideos → requesting READ_MEDIA_IMAGES");
+
+  try {
+    const res = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+    );
+
+    if (res === "granted") return "granted";
+
+    showAlert("Photos & Videos", "Please enable gallery access.");
+    return "denied";
+  } catch {
+    return "denied";
+  }
+};
+
+/* ------------------------------------------------------------------
+   🔵 EXTERNAL STORAGE
+-------------------------------------------------------------------*/
+export const requestExternalStoragePermission = async () => {
+  log("🗂 requestExternalStoragePermission");
+
+  try {
+    const res = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+    );
+
+    return res === "granted" ? "granted" : "denied";
+  } catch {
+    return "denied";
+  }
+};
+
+/* ------------------------------------------------------------------
+   🔵 MASTER PERMISSION CHECKER
+-------------------------------------------------------------------*/
+export const requestPermissions = async () => {
+  if (Platform.OS !== "android") return true; // iOS handled differently
+
+  try {
+    const permissions = [
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+      PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+      PermissionsAndroid.PERMISSIONS.ACCESS_MEDIA_LOCATION,
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+    ];
+
+    const granted = await PermissionsAndroid.requestMultiple(permissions);
+
+    // Helper to check and log denied permissions
+    const checkPermission = (perm, name) => {
+      if (granted[perm] !== PermissionsAndroid.RESULTS.GRANTED) {
+        console.log(`${name} permission denied`);
+        return false;
+      }
+      return true;
+    };
+
+    const allGranted = [
+      checkPermission(PermissionsAndroid.PERMISSIONS.CAMERA, "Camera"),
+      checkPermission(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION, "Location"),
+      checkPermission(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE, "Read External Storage"),
+      checkPermission(PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES, "Read Media Images"),
+      checkPermission(PermissionsAndroid.PERMISSIONS.ACCESS_MEDIA_LOCATION, "Access Media Location"),
+      checkPermission(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, "RECORD_AUDIO"),
+      checkPermission(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS, "POST_NOTIFICATIONS"),
+    ].every(Boolean);
+
+    return allGranted;
+  } catch (err) {
+    console.warn("Permission error:", err);
+    return false;
+  }
 };

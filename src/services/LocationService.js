@@ -14,7 +14,6 @@ export const startLocationTracking = async (webViewRef, locationRef, geoConfigRe
     }
 
     console.log("Starting watchPosition…");
-    console.log("Using geo config:", geoConfigRef.current);
 
     const cfg = geoConfigRef.current;
 
@@ -32,7 +31,7 @@ export const startLocationTracking = async (webViewRef, locationRef, geoConfigRe
                     })
                 );
             } else {
-                console.log("Skipped low-accuracy position:", accuracy);
+                // console.log("Skipped low-accuracy position:", accuracy);
             }
         },
         (error) => {

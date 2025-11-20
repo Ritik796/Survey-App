@@ -1,51 +1,96 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 🌐 INTERNET -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- 📷 CAMERA -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- 🔒 SAFE CAMERA FEATURE -->
     <uses-feature
-        android:name="android.hardware.camera"
+        android:name="android.hardware.camera.any"
         android:required="false" />
 
-    <uses-feature android:name="android.hardware.location" />
-    <uses-feature android:name="android.hardware.location.gps" />
-    
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 🎤 AUDIO -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- 📁 STORAGE PERMISSIONS -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <!-- 📍 LOCATION -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+
+    <!-- 🛰 Foreground services -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
+    <!-- 🔔 Notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 🔋 Wake Lock -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
 
     <application
-      android:name=".MainApplication"
-      android:label="@string/app_name"
-      android:icon="@mipmap/ic_launcher"
-      android:roundIcon="@mipmap/ic_launcher_round"
-      android:allowBackup="false"
-      android:theme="@style/AppTheme"
-      android:supportsRtl="true">
-      <activity
-        android:name=".MainActivity"
+        android:name=".MainApplication"
         android:label="@string/app_name"
-        android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
-        android:launchMode="singleTask"
-        android:windowSoftInputMode="adjustResize"
-        android:exported="true">
-        <intent-filter>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent-filter>
-      </activity>
-<receiver   android:name=".ConnectivityModule"
-    android:exported="false">
-    <intent-filter>
-        <action android:name="android.location.PROVIDERS_CHANGED"/>
-        <action android:name="android.net.conn.CONNECTIVITY_CHANGE"/>
-        <action android:name="android.intent.action.BOOT_COMPLETED"/>
-    </intent-filter>
-</receiver>
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/AppTheme"
+        android:allowBackup="false"
+        android:supportsRtl="true">
+
+        <!-- ✅ MUST BE INSIDE APPLICATION (VISION CAMERA FIX FOR XIAOMI/MIUI) -->
+        <meta-data
+            android:name="com.mrousavy.camera.camera2disabled"
+            android:value="true" />
+
+        <!-- 🟢 MAIN ACTIVITY -->
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:hardwareAccelerated="true"
+            android:configChanges="
+                keyboard|
+                keyboardHidden|
+                orientation|
+                screenLayout|
+                screenSize|
+                smallestScreenSize|
+                uiMode"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <!-- 🛰 GPS + Connectivity Listener -->
+        <receiver
+            android:name=".ConnectivityModule"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.location.PROVIDERS_CHANGED" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
+
 </manifest>
