@@ -167,7 +167,7 @@ const Dashboard = () => {
         );
     };
 
-    const handleStopLoading = () => { setTimeout(() => setLoading(false), 700); appLoadingRef.current = false; };
+    const handleStopLoading = () => { setTimeout(() => setLoading(false), 700); };
 
     /* ------------------ UI ------------------ */
     return (
