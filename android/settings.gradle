@@ -4,10 +4,5 @@ extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autoli
 rootProject.name = 'surveyApp'
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
- 
-include ':react-native-android-location-services-dialog-box'
-project(':react-native-android-location-services-dialog-box').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-android-location-services-dialog-box/android')
- 
-include ':react-native-android-location-enabler'
-project(':react-native-android-location-enabler').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-android-location-enabler/android')
+  
  

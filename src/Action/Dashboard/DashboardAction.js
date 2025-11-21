@@ -1,7 +1,6 @@
 // DashboardAction.js
 import { Linking } from 'react-native';
 import * as locationService from '../../services/LocationService';
-import * as permissionsService from '../../services/PermissionServices';
 import DeviceInfo from 'react-native-device-info';
 // utils/base64ToFile.js
 import RNFS from "react-native-fs";
@@ -21,6 +20,9 @@ export const appStateChange = (
   appLoadingRef
 ) => {
   try {
+    // 💥 FORCE SYNC (IMPORTANT FIX)
+    appLoadingRef.current = Boolean(appLoadingRef.current);
+
     const state =
       typeof nextAppState === "string"
         ? nextAppState
@@ -28,56 +30,42 @@ export const appStateChange = (
 
     const prev = appStateRef?.current;
 
-    // 🎯 App first launch (no previous state)
     if (state === "active") {
       startConnectivityListener(ConnectivityModule);
     }
 
-    // 🎯 App comes to foreground
     if ((prev === "inactive" || prev === "background") && state === "active") {
       
-      // ==========================
-      // ✅ Only run this IF appLoadingRef.current === true
-      // ==========================
-      if (appLoadingRef?.current === true) {
-        if (typeof setLoading === "function") setLoading(true);
+      console.log("🔁 App resumed, appLoadingRef =", appLoadingRef.current);
 
-        if (typeof setWebKey === "function") {
-          setWebKey(prevKey =>
-            typeof prevKey === "number" ? prevKey + 1 : 1
-          );
-        }
+      if (appLoadingRef?.current === true) {
+        setLoading?.(true);
+
+        setWebKey?.(prevKey =>
+          typeof prevKey === "number" ? prevKey + 1 : 1
+        );
+
+        console.log("✅ Reload done");
       } else {
-        console.log("⏩ Reload skipped: appLoadingRef is FALSE");
+        console.log("⏩ Reload skipped (appLoadingRef false)");
       }
     }
 
-    // 🎯 App moves to background
     if (state === "inactive" || state === "background") {
       stopConnectivityListener(ConnectivityModule);
 
-      if (
-        locationRef?.current &&
-        typeof locationService?.stopTracking === "function"
-      ) {
+      if (locationRef?.current && typeof locationService?.stopTracking === "function") {
         locationService.stopTracking(locationRef);
       }
     }
 
-    // Store state
-    if (appStateRef && typeof appStateRef === "object") {
-      appStateRef.current = state;
-    }
+    if (appStateRef) appStateRef.current = state;
 
     return true;
   } catch (err) {
     console.warn("appStateChange: unexpected error", err);
 
-    // 🔥 Only stop loading if allowed
-    if (appLoadingRef?.current === true && typeof setLoading === "function") {
-      setLoading(false);
-    }
-
+    if (appLoadingRef?.current === true) setLoading?.(false);
     return false;
   }
 };
@@ -253,6 +241,10 @@ export const readWebViewMessage = async (
         // logger.log("resetWebData:", data);
         geoConfigRef.current = null;
         return true;
+      case "Console":
+        logger.log("Console:", data);
+      
+        return true;
 
 
       default:
@@ -286,48 +278,6 @@ export const checkAppVersion = async (version, webViewRef) => {
   }
 };
 
-/* --------------------------------------------------
-   requestAllAndroidPermission
-   (keeps your previous behavior: returns true even if some permissions missing)
--------------------------------------------------- */
-export const requestAllAndroidPermission = async () => {
-  try {
-    const permissions = await Promise.allSettled([
-      permissionsService.cameraPermission(),
-      permissionsService.notificationPermission(),
-      permissionsService.requestPermissionForForground(),
-      permissionsService.microphonePermission(),
-      permissionsService.photosVideosPermission(),
-    ]);
-
-    const cam = permissions[0].status === "fulfilled" ? permissions[0].value : "denied";
-    const notif = permissions[1].status === "fulfilled" ? permissions[1].value : "denied";
-    const loc = permissions[2].status === "fulfilled" ? permissions[2].value : "denied";
-    const mic = permissions[3].status === "fulfilled" ? permissions[3].value : "denied";
-    const gallery = permissions[4].status === "fulfilled" ? permissions[4].value : "denied";
-
-    if (
-      cam === "granted" &&
-      notif === "granted" &&
-      loc === "granted" &&
-      mic === "granted" &&
-      gallery === "granted"
-    ) {
-      // console.log("All permissions granted.");
-      return true;
-    } else {
-      // console.log("Some permissions missing:", {
-      //   camera: cam, notification: notif, location: loc, microphone: mic, gallery: gallery
-      // });
-
-      // your flow expects true even if some missing
-      return true;
-    }
-  } catch (error) {
-    console.error("Error requesting permissions:", error);
-    return true;
-  }
-};
 export async function base64ToFile(base64String) {
   try {
     const cleaned = base64String.replace(/^data:image\/[a-z]+;base64,/, "");

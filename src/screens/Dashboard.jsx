@@ -23,7 +23,9 @@ import ImageCapture from '../Components/ImageCapture/ImageCapture';
 import { requestPermissions } from '../services/PermissionServices';
 
 const Dashboard = () => {
-    const WEB_URL = "http://192.168.20.144:3000";
+    // const WEB_URL = "http://192.168.29.181:3000";
+    const WEB_URL = "https://surveyapp-29597.web.app";
+    // const WEB_URL = "http://192.168.20.144:3000";
 
     const appState = useRef(AppState.currentState);
     const webViewRef = useRef(null);
@@ -52,15 +54,11 @@ const Dashboard = () => {
     const [cardScannerConfig, setCardScannerConfig] = useState(null);
     const appLoadingRef = useRef(true);
     const isTrackingRef = useRef(false);
-    useEffect(() => {
-        console.log("🔍 Active Camera =", activeCamera, typeof activeCamera);
-    }, [activeCamera]);
+ 
     /* ------------------ INITIAL SETUP ------------------ */
     useEffect(() => {
-        appLoadingRef.current = false;
 
         requestPermissions().then((granted) => {
-            appLoadingRef.current = granted;
             setLoading(!granted);
         });
 
