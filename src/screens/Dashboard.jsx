@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import WebView from 'react-native-webview';
 import {
     AppState,
+    BackHandler,
     DeviceEventEmitter,
     KeyboardAvoidingView,
     NativeModules,
@@ -24,8 +25,8 @@ import { requestPermissions } from '../services/PermissionServices';
 
 const Dashboard = () => {
     // const WEB_URL = "http://192.168.29.181:3000";
-    const WEB_URL = "https://surveyapp-29597.web.app";
-    // const WEB_URL = "http://192.168.20.144:3000";
+    // const WEB_URL = "https://surveyapp-29597.web.app";
+    const WEB_URL = "http://192.168.31.136:3000";
 
     const appState = useRef(AppState.currentState);
     const webViewRef = useRef(null);
@@ -67,6 +68,15 @@ const Dashboard = () => {
 
         return () => subscription.remove();
     }, []);
+      // ✅ Hardware back button
+  useEffect(() => {
+    const backAction = () => {
+      webViewRef.current?.postMessage(JSON.stringify({ type: "EXIT_REQUEST" }));
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => backHandler.remove();
+  }, []);
 
     /* ---------- Connectivity + GPS ---------- */
     useEffect(() => {
@@ -249,6 +259,8 @@ const Dashboard = () => {
                             allowUniversalAccessFromFileURLs={true}
                             allowsInlineMediaPlayback={true}
                             mediaPlaybackRequiresUserAction={false}
+                            setBuiltInZoomControls={false}
+                            setDisplayZoomControls={false}
                             renderToHardwareTextureAndroid={false}
                             onMessage={handleWebViewMessage}
                             onLoadEnd={handleStopLoading}

@@ -56,15 +56,15 @@ export default function ImageCapture({
     /* -------------------------------- LOCATION CONTROL -------------------------------- */
     useEffect(() => {
         if (isVisible) {
-            stopTracking(locationRef);
             setActiveCamera("card");
             setShowCamera(true);
             setShowPreview(false);
-        } else {
-            startLocationTracking(webViewRef, locationRef, geoConfigRef);
-            setActiveCamera(null);
         }
     }, [isVisible]);
+    useEffect(() => {
+        stopTracking(locationRef);
+        return () => { startLocationTracking(webViewRef, locationRef, geoConfigRef); setActiveCamera(null); };
+    }, []);
 
     /* -------------------------------- CAPTURE IMAGE -------------------------------- */
     const captureImage = useCallback(async () => {
@@ -99,8 +99,8 @@ export default function ImageCapture({
             setShowCamera(false);
 
             // Then show preview after small delay
-        
-                setShowPreview(true);
+
+            setShowPreview(true);
             // }, 100);
 
         } catch (err) {
@@ -286,14 +286,14 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderRadius: 18,
         overflow: "hidden",
-        padding:10
+        padding: 10
     },
     header: {
         height: 55,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "#f2f2f2",
-        borderRadius:5
+        borderRadius: 5
     },
     headerText: {
         fontSize: 18,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         padding: 14,
         backgroundColor: "#f2f2f2",
-        borderRadius:5
+        borderRadius: 5
     },
     cancelBtn: {
         width: "46%",

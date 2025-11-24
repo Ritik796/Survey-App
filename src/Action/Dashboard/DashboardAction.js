@@ -1,5 +1,5 @@
 // DashboardAction.js
-import { Linking } from 'react-native';
+import { BackHandler, Linking } from 'react-native';
 import * as locationService from '../../services/LocationService';
 import DeviceInfo from 'react-native-device-info';
 // utils/base64ToFile.js
@@ -35,7 +35,7 @@ export const appStateChange = (
     }
 
     if ((prev === "inactive" || prev === "background") && state === "active") {
-      
+
       console.log("🔁 App resumed, appLoadingRef =", appLoadingRef.current);
 
       if (appLoadingRef?.current === true) {
@@ -241,9 +241,12 @@ export const readWebViewMessage = async (
         // logger.log("resetWebData:", data);
         geoConfigRef.current = null;
         return true;
+      case "exitApp":
+        BackHandler.exitApp();
+        return true;
       case "Console":
         logger.log("Console:", data);
-      
+
         return true;
 
 
