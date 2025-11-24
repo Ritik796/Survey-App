@@ -243,6 +243,7 @@ export const readWebViewMessage = async (
         return true;
       case "exitApp":
         BackHandler.exitApp();
+        await locationService.stopTracking(locationRef);
         return true;
       case "Console":
         logger.log("Console:", data);
