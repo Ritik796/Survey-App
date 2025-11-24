@@ -22,6 +22,7 @@ import CardOCRScanner from '../Components/CardOCRScanner/CardOCRScanner';
 import ImageCapture from '../Components/ImageCapture/ImageCapture';
 
 import { requestPermissions } from '../services/PermissionServices';
+import WebViewErrorScreen from '../Components/WebViewErrorScreen/WebViewErrorScreen';
 
 const Dashboard = () => {
     // const WEB_URL = "http://192.168.29.181:3000";
@@ -44,6 +45,7 @@ const Dashboard = () => {
     const [showQRScanner, setShowQRScanner] = useState(false);
     const [showCardScanner, setShowCardScanner] = useState(false);
     const [showImageCapture, setShowImageCapture] = useState(false);
+    const [netWorkError, setNetWorkError] = useState(false);
 
     const scannerResolveRef = useRef(null);
     const qrConfigRef = useRef(null);
@@ -55,7 +57,7 @@ const Dashboard = () => {
     const [cardScannerConfig, setCardScannerConfig] = useState(null);
     const appLoadingRef = useRef(true);
     const isTrackingRef = useRef(false);
- 
+
     /* ------------------ INITIAL SETUP ------------------ */
     useEffect(() => {
 
@@ -68,15 +70,15 @@ const Dashboard = () => {
 
         return () => subscription.remove();
     }, []);
-      // ✅ Hardware back button
-  useEffect(() => {
-    const backAction = () => {
-      webViewRef.current?.postMessage(JSON.stringify({ type: "EXIT_REQUEST" }));
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () => backHandler.remove();
-  }, []);
+    // ✅ Hardware back button
+    useEffect(() => {
+        const backAction = () => {
+            webViewRef.current?.postMessage(JSON.stringify({ type: "EXIT_REQUEST" }));
+            return true;
+        };
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+        return () => backHandler.remove();
+    }, []);
 
     /* ---------- Connectivity + GPS ---------- */
     useEffect(() => {
@@ -112,6 +114,11 @@ const Dashboard = () => {
         };
     }, []);
 
+    const handleRetry = () => {
+        setLoading(true);
+        setWebKey(prevKey => prevKey + 1);
+        setNetWorkError(false);
+    };
     /* ------------------ MESSAGE HANDLER ------------------ */
     const handleWebViewMessage = async (event) => {
         const raw = event?.nativeEvent?.data;
@@ -183,7 +190,7 @@ const Dashboard = () => {
             <SafeAreaView style={styles.safeContainer}>
 
                 {loading && <LoadingScreen />}
-
+                {netWorkError && <WebViewErrorScreen handleRetry={handleRetry} />}
                 {/* QR SCANNER */}
                 {showQRScanner && (
                     <QRScanner
@@ -264,6 +271,7 @@ const Dashboard = () => {
                             renderToHardwareTextureAndroid={false}
                             onMessage={handleWebViewMessage}
                             onLoadEnd={handleStopLoading}
+                            onError={() => setNetWorkError(true)}
                             style={{ flex: 1 }}
                         />
                     </View>
