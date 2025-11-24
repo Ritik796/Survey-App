@@ -26,8 +26,8 @@ import WebViewErrorScreen from '../Components/WebViewErrorScreen/WebViewErrorScr
 
 const Dashboard = () => {
     // const WEB_URL = "http://192.168.29.181:3000";
-    // const WEB_URL = "https://surveyapp-29597.web.app";
-    const WEB_URL = "http://192.168.31.136:3000";
+    const WEB_URL = "https://surveyapp-29597.web.app";
+    // const WEB_URL = "http://192.168.31.136:3000";
 
     const appState = useRef(AppState.currentState);
     const webViewRef = useRef(null);
