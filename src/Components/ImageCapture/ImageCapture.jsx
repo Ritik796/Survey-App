@@ -185,14 +185,30 @@ export default function ImageCapture({
 
     /* -------------------------------- CLOSE POPUP -------------------------------- */
     const closePopup = () => {
+        // 🔥 Send CANCEL message to WebView
+        if (webViewRef.current) {
+            webViewRef.current.postMessage(
+                JSON.stringify({
+                    type: "captureImage",
+                    imageType: cameraImageTypeRef.current,
+                    base64: null,
+                    success: false,
+                    cancelled: true
+                })
+            );
+        }
+
+        // 🔥 Reset preview + camera flags
         setShowPreview(false);
         setShowCamera(false);
 
+        // 🔥 Delay cleanup and close modal
         setTimeout(() => {
             setPreviewImg(null);
             onClose();
         }, 250);
     };
+
 
     /* -------------------------------- UI -------------------------------- */
     return (
