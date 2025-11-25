@@ -167,7 +167,7 @@ export default function ImageCapture({
             webViewRef.current?.postMessage(
                 JSON.stringify({
                     type: "captureImage",
-                    imageType: cameraImageTypeRef.current,
+                   imageType: cameraImageTypeRef?.current?.type || "default",
                     base64: previewImg,
                     success: true,
                 })
@@ -190,7 +190,7 @@ export default function ImageCapture({
             webViewRef.current.postMessage(
                 JSON.stringify({
                     type: "captureImage",
-                    imageType: cameraImageTypeRef.current,
+                    imageType: cameraImageTypeRef?.current?.type || "default",
                     base64: null,
                     success: false,
                     cancelled: true
@@ -225,7 +225,7 @@ export default function ImageCapture({
                         )}
 
                         <View style={styles.header}>
-                            <Text style={styles.headerText}>Capture Image</Text>
+                            <Text style={styles.headerText}>{cameraImageTypeRef?.current?.captureTitle || "Capture Image"}</Text>
                         </View>
 
                         <View style={styles.cameraArea} onLayout={() => setIsLayoutReady(true)}>
@@ -262,7 +262,7 @@ export default function ImageCapture({
                         )}
 
                         <View style={styles.header}>
-                            <Text style={styles.headerText}>Preview Image</Text>
+                            <Text style={styles.headerText}>{cameraImageTypeRef?.current?.preViewTitle || "Preview Image"}</Text>
                         </View>
 
                         <View style={styles.cameraArea}>

@@ -221,8 +221,14 @@ export const readWebViewMessage = async (
             IMAGE CAPTURE
       -------------------------------------------------- */
       case "captureImage":
+        console.log(data)
         imageCaptureConfig.current = data.settings || null;
-        cameraImageTypeRef.current = data.imageType;
+        cameraImageTypeRef.current = {
+          type: data.imageType || "default",
+          captureTitle: data.captureTitle || "Capture Image",
+          preViewTitle: data.preViewTitle || "Preview Image",
+        };
+
 
         await locationService.stopTracking(locationRef);
 
@@ -248,6 +254,8 @@ export const readWebViewMessage = async (
       case "Console":
         logger.log("Console:", data);
 
+        return true;
+      case "Native_Settings":
         return true;
 
 
